@@ -22,12 +22,53 @@ module.exports = (grunt) ->
 					{
 						expand: true
 						cwd: "src/"
-						src: ["assets/**/*", "**/*.hbs", "**/*.html"]
+						src: ["client/assets/**/*", "!client/assets/**/*.sass", "!client/assets/**/*.scss", "**/*.hbs", "**/*.html"]
 						dest: "dist/"
 					}
+					{
+						expand: true,
+						dot: true,
+						cwd: 'dist',
+						dest: 'dist/',
+						src: [ '**/vendor/**/*.css'],
+						rename: (dest, src) ->
+							path = require "path"
+							basename = path.basename(src)
+							return dest + src.replace(basename, "_" + basename).replace('.css','.scss')
+					}
+				]
+		sass:
+			dist:
+				options:
+					sourcemap: "none"
+					loadPath: ["src/client/assets/", "dist/client/vendor/components/"]
+				files: [
+					{
+						expand: true
+						cwd: "src/"
+						src: ["**/*.sass"]
+						dest: "dist/"
+						ext: ".css"
+					}
+				]
+		autoprefixer:
+			sass:
+				expand: true
+				flatten: false
+				src: ["dist/**/*.css", "!dist/**/vendor/**/*.css"]
+		cssmin:
+			sass:
+				options:
+					keepSpecialComments: 0
+				files: [
+					expand: true
+					cwd: "dist"
+					src: ["**/*.css", "!**/vendor/**/*.css"]
+					dest: "dist"
 				]
 		clean:
-			dist: ["dist/"]
+			dist: ["dist"]
+			sass: [".sass-cache"]
 		bower:
 	      install:
 	        options:
@@ -35,13 +76,13 @@ module.exports = (grunt) ->
 	          copy: true
 	          cleanBowerDir: true
 	          cleanTargetDir: true
-	          targetDir: "dist/vendor/components"
+	          targetDir: "dist/client/vendor/components"
 	          bowerOptions:
 	            production: false
 		browserify:
 			app:
 				files:
-					'dist/client/build/app.js': ["dist/client/**/*.js", "!dist/client/build/app.js"]
+					'dist/client/build/app.js': ["dist/client/**/*.js", "!dist/client/build/app.js", "!dist/client/vendor/**/*.js"]
 		foreman:
 			dev:
 				env: ["dev.env"]
@@ -64,21 +105,21 @@ module.exports = (grunt) ->
 					}
 				]
 
-
-
 	grunt.loadNpmTasks 'grunt-contrib-coffee'
 	grunt.loadNpmTasks 'grunt-contrib-sass'
 	grunt.loadNpmTasks 'grunt-contrib-copy'
 	grunt.loadNpmTasks 'grunt-contrib-clean'
 	grunt.loadNpmTasks 'grunt-contrib-uglify'
+	grunt.loadNpmTasks 'grunt-autoprefixer'
+	grunt.loadNpmTasks 'grunt-contrib-cssmin'
 	grunt.loadNpmTasks 'grunt-bower-task'
 	grunt.loadNpmTasks 'grunt-browserify'
 	grunt.loadNpmTasks 'grunt-shell'
 	grunt.loadNpmTasks 'grunt-foreman'
 	grunt.loadNpmTasks 'grunt-ng-annotate'
 
-	grunt.registerTask 'initialize', ["clean:dist", "coffee", "copy", "bower", "ngAnnotate", "browserify", "uglify"]
-	grunt.registerTask 'update', ["coffee", "copy", "ngAnnotate", "browserify"]
+	grunt.registerTask 'initialize', ["clean:dist", "coffee", "bower", "copy", "ngAnnotate", "browserify", "uglify", "sass", "clean:sass", "autoprefixer", "cssmin"]
+	grunt.registerTask 'update', ["coffee", "copy", "ngAnnotate", "browserify", "sass", "clean:sass", "autoprefixer"]
 
 	grunt.registerTask 'serve', ["update", "foreman"]
 
